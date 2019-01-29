@@ -22,7 +22,6 @@ app.use( bodyParser.json() );
  */
 
 //resources use /(object) creating a new object
-
 app.post('/todos', (request, response) => {
     var todo = new Todo({
        text: request.body.text
@@ -34,6 +33,16 @@ app.post('/todos', (request, response) => {
     }, (e) => {
         response.status(400).send( e );
     });
+});
+
+//get all the todos
+app.get('/todos', (request, response) => {
+    Todo.find().then((todos) => {
+        //create an object to send back to the user to create status code or anything you want to send back to the user
+        response.send({todos});
+    }, (e) => {
+        response.status(400).send(e);
+    })
 });
 
 app.listen(3000, () => {
