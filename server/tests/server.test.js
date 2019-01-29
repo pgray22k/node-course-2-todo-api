@@ -7,12 +7,23 @@ const request = require('supertest'); //test http post and response methods
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
 
-// database will be empty before the test runs, we are doing this in order to past our test case that
-// the to-do is coming back with 1 item in the database
+//mske dummy todos
+const todos = [{
+    text: 'First test todo'
+}, {
+    text: 'Second test todo'
+}];
+
+/*
+    1) database will be empty before the test runs, we are doing this in order to past our test case
+    the to-do is coming back with 1 item in the database
+    2) After we remove we must also insert test data back into the database to test we have the expected items
+    when submitting a failure
+ */
 beforeEach((done) => {
     Todo.remove({}).then(() => {
-        done()
-    });
+        return Todo.insertMany(todos);
+    }).then(()=> done()); //chaining callbacks
 });
 
 //group multiple routes
@@ -33,7 +44,8 @@ describe('POST /todos', () => {
                 }
 
                 //call find to see if the text was actually stored
-                Todo.find().then((todos) => {
+                //added find the specific text that we entered so the test should come back as 1
+                Todo.find({text}).then((todos) => {
                     expect(todos.length).toBe(1); //because we added one to-do item
                     expect(todos[0].text).toBe(text);//if the text is the same is
                     done();
@@ -58,10 +70,22 @@ describe('POST /todos', () => {
 
                 //call find to see if the text was actually stored
                 Todo.find().then((todos) => {
-                    expect(todos.length).toBe(0); //because we added one to-do item
+                    expect(todos.length).toBe(2); //there should only two documents because that we added in the before
                     //expect(todos[0].text).toBe(text);//if the text is the same is
                     done();
                 }).catch((e) => done(e)); // catch the error if failed saving to the database because the above calls only catches http errors in our test case
             });
     });
+});
+
+describe('GET /todos', () => {
+    it ('should get all todos', (done) => {
+        request(app)
+            .get('/todos')
+            .expect(200)
+            .expect((response)=>{
+                expect(response.body.todos.length).toBe(2) //because we have two to-dos in our test data
+            })
+            .end(done);
+    })
 });
