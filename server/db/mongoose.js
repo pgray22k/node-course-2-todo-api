@@ -1,4 +1,4 @@
-//mongoose configuration
+//mongoose configuration.. this is just one time initialization of data so we call the mongoose variable once
 
 var mongoose = require('mongoose');
 
