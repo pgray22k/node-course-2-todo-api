@@ -2,6 +2,8 @@
 var express = require( 'express');
 var bodyParser = require('body-parser')
 
+const {ObjectID} = require('mongodb');
+
 var {mongoose} = require('./db/mongoose');
 var {Todo} = require('./models/todo'); //destructor our models and reference them to the class
 var {User} = require ('./models/user');
@@ -43,6 +45,36 @@ app.get('/todos', (request, response) => {
     }, (e) => {
         response.status(400).send(e);
     })
+});
+
+//GET /todos/(id) --make this url dynamic to fetch info by id
+//putting a colon is a url parameter to make it dynamic
+app.get('/todos/:id', (request, response) => {
+    var id = request.params.id;
+    //response.send(request.params);
+    //validate id if not valid respond with a 404 send back empty body
+
+    if (!ObjectID.isValid(id)) {
+        console.log('ID not valid');
+        response.status(404).send();
+    }
+
+    Todo.findById(id).then((todo) => {
+       if(!todo) {
+           response.status(404).send();
+       }
+       response.status(200).send({todo});
+    }).catch((e) => {
+        response.status(400).send();
+    });
+
+    //findById
+     //success send back 200
+        //if todo- send it back
+        //if no todo -- send back 404 with empty body
+     //error
+       //send back 400 and send back empty back
+
 });
 
 app.listen(3000, () => {
