@@ -8,7 +8,9 @@ mongoose.Promise = global.Promise;
 //connect to the database using mongoose - mongodb is the protocols
 //mongoose maintains the connection over time and we don't have to use callbacks
 //with this mongoose allows us not to micro manage with updating, deleting or saving.
-mongoose.connect('mongodb://localhost:27017/TodoApp', {useNewUrlParser: true });
+//When developing apps , websites on different servers we have to get the URI from the process instead
+//    of using are local host
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TodoApp', {useNewUrlParser: true });
 
 module.exports = {
     mongoose : mongoose  //with e6 we can shorten this by putting this on one line.
