@@ -14,10 +14,12 @@ const {Todo} = require('./../models/todo');
 //mske dummy todos
 const todos = [{
     _id : new ObjectID(),
-    text: 'First test todo'
+    text: 'First test todo',
 }, {
     _id : new ObjectID(),
-    text: 'Second test todo'
+    text: 'Second test todo',
+    completed: true,
+    completedAt: 123
 }];
 
 /*
@@ -85,7 +87,7 @@ describe('POST /todos', () => {
     });
 });
 
-describe('GET /todos', () => {
+describe('GET all /todos', () => {
     it ('should get all todos', (done) => {
         request(app)
             .get('/todos')
@@ -97,7 +99,7 @@ describe('GET /todos', () => {
     })
 });
 
-describe('GET /todos:id', ()=> {
+describe('GET one /todos:id', ()=> {
     it('should return todo doc', (done)=> {
         request(app)
             .get(`/todos/${todos[0]._id.toHexString()}`)
@@ -167,4 +169,45 @@ describe('DELETE /todos/:id', ()=> {
            .expect(404)
            .end(done);
    });
+
+});
+
+describe('Patch /todos:id', () => {
+
+    it('should update the todo', (done)=> {
+        var hexId = todos[0]._id.toHexString();
+        var text = 'This should be the new text';
+
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .send({
+                completed: true,
+                text
+            })
+            .expect(200)
+            .expect( (response) => {
+                expect(response.body.todo.text).toBe(text);
+                expect(response.body.todo.completed).toBe(true);
+                expect(response.body.todo.completedAt).toBeA('number');
+            })
+            .end(done);
+
+    });
+
+    it('should clear completedAt when todo is not completed', (done)=> {
+        var hexId = todos[1]._id.toHexString();
+
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .send({
+                completed: false})
+            .expect(200)
+            .expect( (response) => {
+                expect(response.body.todo.completed).toBe(false);
+                expect(response.body.todo.completedAt).toNotExist();
+            })
+            .end(done);
+
+    });
+
 });
