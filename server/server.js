@@ -1,7 +1,7 @@
 //server class file will be responsible for our routes.
-var express = require( 'express');
-var bodyParser = require('body-parser')
-
+const express = require( 'express');
+const bodyParser = require('body-parser');
+const _ = require('lodash');
 const {ObjectID} = require('mongodb');
 
 var {mongoose} = require('./db/mongoose');
@@ -78,6 +78,7 @@ app.get('/todos/:id', (request, response) => {
 
 });
 
+//route for doing deletes in the program / database
 app.delete('/todos/:id', (request, response)=> {
     //get by id
     var id = request.params.id;
@@ -97,6 +98,37 @@ app.delete('/todos/:id', (request, response)=> {
         response.status(400).send();
     });
 });
+
+
+//This is an update route, we use patch to make update calls to the database / program
+app.patch('/todos/:id', (request, response) => {
+    var id = request.params.id;
+
+    //using lodash module we are to get only the subset of the things the users passes to us
+    var body = _.pick(request.body, ['text', 'completed']);  //this just takes the text and completed properties
+
+    if (!ObjectID.isValid(id)) {
+        console.log('ID not valid');
+        response.status(404).send();
+    }
+
+    if( _.isBoolean(body.completed) && body.completed ) {
+        body.completedAt = new Date().getTime(); //returns javascript timestamp in millisecoonds
+    } else {
+        body.completed = false;
+        body.completedAt = null;
+    }
+
+    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+        if(!todo) {
+            response.status(404).send();
+        }
+        response.send({todo});
+
+    }).catch((e) => {
+        response.status(400).send();
+    })
+})
 
 app.listen(port, () => {
     console.log(`Started on port ${port}`);
