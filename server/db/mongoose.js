@@ -10,7 +10,7 @@ mongoose.Promise = global.Promise;
 //with this mongoose allows us not to micro manage with updating, deleting or saving.
 //When developing apps , websites on different servers we have to get the URI from the process instead
 //    of using are local host
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TodoApp', {useNewUrlParser: true });
+mongoose.connect(process.env.MONGODB_URI, {useNewUrlParser: true });
 
 module.exports = {
     mongoose : mongoose  //with e6 we can shorten this by putting this on one line.

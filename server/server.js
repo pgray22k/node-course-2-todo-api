@@ -1,4 +1,6 @@
 //server class file will be responsible for our routes.
+require('./config/config');
+
 const express = require( 'express');
 const bodyParser = require('body-parser');
 const _ = require('lodash');
@@ -9,7 +11,6 @@ var {Todo} = require('./models/todo'); //destructor our models and reference the
 var {User} = require ('./models/user');
 
 var app = express();
-const port = process.env.PORT || 3000;
 
 /*
     crud -- create , read, update, and delete.
@@ -130,8 +131,8 @@ app.patch('/todos/:id', (request, response) => {
     })
 })
 
-app.listen(port, () => {
-    console.log(`Started on port ${port}`);
+app.listen( process.env.port, () => {
+    console.log(`Started on port ${process.env.port}`);
 });
 
 module.exports = {app};
