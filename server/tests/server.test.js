@@ -1,6 +1,9 @@
 /*
     Test Class to test our post api calls
  */
+//To run our tests make sure we use npm run test-watch
+
+
 const expect = require('expect');  //helps create test classes
 const request = require('supertest'); //test http post and response methods
 const {ObjectID} = require ('mongodb');
@@ -52,7 +55,8 @@ describe('POST /todos', () => {
                     expect(todos.length).toBe(1); //because we added one to-do item
                     expect(todos[0].text).toBe(text);//if the text is the same is
                     done();
-                }).catch((e) => done(e)); // catch the error if failed saving to the database because the above calls only catches http errors in our test case
+                }).catch((e) => done(e)); // catch the error if failed saving to the database because the above
+                                                   // calls only catches http errors in our test case
             });
     });
 
@@ -120,4 +124,47 @@ describe('GET /todos:id', ()=> {
             .expect(404)
             .end(done);
     });
+});
+
+describe('DELETE /todos/:id', ()=> {
+   it('should remove a todo', (done) => {
+       var hexId = todos[1]._id.toHexString();
+
+       request(app)
+           .delete(`/todos/${hexId}`)
+           .expect(200)
+           .expect( (response) => {
+               expect(response.body.todo._id).toBe(hexId);
+           })
+           .end((err, response) => {
+               if ( err ) {
+                   return done(err);
+               }
+
+               //call find to see if the delete actually worked
+               //added find the specific text that we entered so the test should come back as 1
+               Todo.findById(hexId).then((todo) => {
+                   expect(todo).toNotExist(); //because we removed the item from the DB
+                   done();
+               }).catch((e) => done(e)); // catch the error if failed saving to the database because the above
+               // calls only catches http errors in our test case
+           });
+
+   });
+
+   it('should return 404 uf todo not found', (done) => {
+       var hexId = new ObjectID().toHexString();
+
+       request(app)
+           .delete(`/todos/${hexId}`)
+           .expect(404)
+           .end(done);
+   });
+
+   it('should return 404 if object id is invalid', (done) => {
+       request(app)
+           .delete(`/todos/123`)
+           .expect(404)
+           .end(done);
+   });
 });
