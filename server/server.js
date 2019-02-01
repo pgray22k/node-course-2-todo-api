@@ -1,4 +1,4 @@
-//server class file will be responsible for our routes.
+//server class file will be responsible for our routes within our application
 require('./config/config');
 
 const express = require( 'express');
@@ -130,6 +130,27 @@ app.patch('/todos/:id', (request, response) => {
         response.status(400).send();
     })
 })
+
+//Adding new user by POST /users
+app.post('/user', (request, response) => {
+    var body = _.pick(request.body, ['email', 'password', 'firstName', 'lastName']);  //this just takes the text and completed properties
+
+    var user = new User( body );
+
+    //User.findbyToken -- custom model method we are going to create
+    //user.generateAuthToken
+    //console.log( 'Passed in user ', user);
+
+    //save the document and send the results to the user
+
+    user.save().then(() => {
+        return user.generateAuthToken();
+    }).then((token) => {
+        response.header('x-auth', token).send( user );
+    }).catch( (e) => {
+        response.status(400).send( e );
+    });
+});
 
 app.listen( process.env.PORT, () => {
     console.log(`Started on port ${process.env.port}`);
