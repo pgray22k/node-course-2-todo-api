@@ -44,10 +44,20 @@ var UserSchema = new mongoose.Schema({
     }
 );
 
-//instance method, instance methods have access to individual documents
+//override methods - change how we want the method to work
+UserSchema.methods.toJSON = function () {
+    var user = this;
+    var userObject = user.toObject();
+
+    //want to only see the user constants, giving password, token, etc. should only be for server information
+    return _.pick(userObject, ['_id','email','firstName']);
+};
+
+
+//instance method - instance methods have access to individual documents
 //creating a method to the model
 UserSchema.methods.generateAuthToken = function() {
-  var user = this;
+  var user = this;  // instance methods get called with the individual document hence the lower case in the variable name
   var access = 'auth';
   var token = jwt.sign({_id: user._id.toHexString(), access}, 'abc123').toString();
 
@@ -58,13 +68,29 @@ UserSchema.methods.generateAuthToken = function() {
   });
 };
 
-//override methods
-UserSchema.methods.toJSON = function () {
-    var user = this;
-    var userObject = user.toObject();
+//Access .statics - everything that is added on to a model method instead of an instance method
+UserSchema.statics.findByToken = function ( token ) {
+    //when use a function method we gain access to this keyword
+    var User = this; //model methods gets called with the the this binding
+    var decoded;
 
-    //want to only see the user constants, giving password, token, etc. should only be for server information
-    return _.pick(userObject, ['_id','email','firstName']);
+    try {
+        decoded = jwt.verify(token, 'abc123');
+    } catch ( e ) {
+        //create a Promise when throwing exception
+        // return new Promise((resolve, reject) => {
+        //    reject();
+        // });
+        return Promise.reject('Reason');
+
+    }
+
+    //for nested queries have to use (.) syntax
+    return User.findOne({
+       '_id' : decoded._id,
+       'tokens.token' : token,
+       'tokens.access' : 'auth'
+    });
 };
 
 var User = mongoose.model('User',  UserSchema );

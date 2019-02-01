@@ -9,6 +9,7 @@ const {ObjectID} = require('mongodb');
 var {mongoose} = require('./db/mongoose');
 var {Todo} = require('./models/todo'); //destructor our models and reference them to the class
 var {User} = require ('./models/user');
+var {authenticate} = require('./middleware/authenticate');
 
 var app = express();
 
@@ -150,6 +151,11 @@ app.post('/user', (request, response) => {
     }).catch( (e) => {
         response.status(400).send( e );
     });
+});
+
+//Setting up private routes  -- to setup our middleware we just call the reusable function that we created
+app.get('/user/me', authenticate, (request, response) => {
+    response.send(request.user);
 });
 
 app.listen( process.env.PORT, () => {
