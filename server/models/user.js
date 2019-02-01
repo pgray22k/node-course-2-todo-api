@@ -1,8 +1,11 @@
-//create a user model
+//create a user model -- we are going to use mongoose middle ware by handling event
 const mongoose = require('mongoose');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
+
+
 
 var UserSchema = new mongoose.Schema({
         email : {
@@ -92,6 +95,25 @@ UserSchema.statics.findByToken = function ( token ) {
        'tokens.access' : 'auth'
     });
 };
+
+//crate an event before we save the document to the database
+//going to invoke the function keyword because we want the this binding
+//have to call the next argument and call because the middleware is never going to complete if we dont call it
+UserSchema.pre('save', function ( next ) {
+    var user = this;
+
+    //we only want to modify if the user changed their password, important because we don't want to hash a hash
+    if ( user.isModified('password') ) {
+        bcrypt.genSalt(10, (err, salt) => {
+            bcrypt.hash( user.password, salt, (err, hash)=> {
+                user.password = hash; //hiding the plain text password by hashing it and saving to db
+                next();
+            });
+        });
+    } else {
+        next();
+    }
+});
 
 var User = mongoose.model('User',  UserSchema );
 
