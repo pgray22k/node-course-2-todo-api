@@ -26,10 +26,15 @@ app.use( bodyParser.json() );
     Make a Route via api post for json queries
  */
 
+/*
+    To make routes private we just pass the authenticate middleware to our methods
+ */
+
 //resources use /(object) creating a new object
-app.post('/todos', (request, response) => {
+app.post('/todos', authenticate, (request, response) => {
     var todo = new Todo({
-       text: request.body.text
+       text: request.body.text,
+        _creator: request.user._id
     });
 
     //save the document and send the results to the user
@@ -41,8 +46,10 @@ app.post('/todos', (request, response) => {
 });
 
 //get all the todos
-app.get('/todos', (request, response) => {
-    Todo.find().then((todos) => {
+app.get('/todos', authenticate, (request, response) => {
+    Todo.find({
+        _creator: request.user._id //added the private route where only the user that is logged in we see his ToDos
+    }).then((todos) => {
         //create an object to send back to the user to create status code or anything you want to send back to the user
         response.send({todos});
     }, (e) => {
@@ -52,7 +59,7 @@ app.get('/todos', (request, response) => {
 
 //GET /todos/(id) --make this url dynamic to fetch info by id
 //putting a colon is a url parameter to make it dynamic
-app.get('/todos/:id', (request, response) => {
+app.get('/todos/:id', authenticate, (request, response) => {
     var id = request.params.id;
     //response.send(request.params);
     //validate id if not valid respond with a 404 send back empty body
@@ -62,7 +69,10 @@ app.get('/todos/:id', (request, response) => {
         response.status(404).send();
     }
 
-    Todo.findById(id).then((todo) => {
+    Todo.findOne({
+        _id : id,
+        _creator: request.user._id
+    }).then((todo) => {
        if(!todo) {
            response.status(404).send();
        }
@@ -81,7 +91,7 @@ app.get('/todos/:id', (request, response) => {
 });
 
 //route for doing deletes in the program / database
-app.delete('/todos/:id', (request, response)=> {
+app.delete('/todos/:id', authenticate, (request, response)=> {
     //get by id
     var id = request.params.id;
 
@@ -91,7 +101,10 @@ app.delete('/todos/:id', (request, response)=> {
         response.status(404).send();
     }
 
-    Todo.findByIdAndDelete(id).then( (todo) => {
+    Todo.findOneAndRemove({ //replaced findbyid to only delete the ToDo by the creater
+        _id : id,
+        _creator: request.user._id
+    }).then( (todo) => {
         if(!todo) {
             response.status(404).send("ID not found");
         }
@@ -103,7 +116,7 @@ app.delete('/todos/:id', (request, response)=> {
 
 
 //This is an update route, we use patch to make update calls to the database / program
-app.patch('/todos/:id', (request, response) => {
+app.patch('/todos/:id', authenticate, (request, response) => {
     var id = request.params.id;
 
     //using lodash module we are to get only the subset of the things the users passes to us
@@ -121,7 +134,10 @@ app.patch('/todos/:id', (request, response) => {
         body.completedAt = null;
     }
 
-    Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+    Todo.findOneAndUpdate({
+        _id : id,
+        _creator: request.user._id
+    }, {$set: body}, {new: true}).then((todo) => {
         if(!todo) {
             response.status(404).send();
         }

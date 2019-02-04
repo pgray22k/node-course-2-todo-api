@@ -31,6 +31,7 @@ describe('POST /todos', () => {
         request(app)
             .post('/todos')
             .send({text}) //Supertest automatically converts to JSON when using this library
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .expect(200)
             .expect((response) => { //assertion about the body of the text that will come back
                 expect(response.body.text).toBe(text); //the text body should be the text that is defined above
@@ -56,6 +57,7 @@ describe('POST /todos', () => {
 
         request(app)
             .post('/todos')
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .send({}) //Supertest automatically converts to JSON when using this library
             .expect(400)
             // .expect((response) => { //assertion about the body of the text that will come back
@@ -80,22 +82,33 @@ describe('GET all /todos', () => {
     it ('should get all todos', (done) => {
         request(app)
             .get('/todos')
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .expect(200)
             .expect((response)=>{
-                expect(response.body.todos.length).toBe(2) //because we have two to-dos in our test data
+                expect(response.body.todos.length).toBe(1) //because we have two to-dos in our test data
             })
             .end(done);
     })
 });
 
-describe('GET one /todos:id', ()=> {
+describe('GET /todos:id', ()=> {
     it('should return todo doc', (done)=> {
         request(app)
             .get(`/todos/${todos[0]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .expect(200)
             .expect((response)=>{
                 expect(response.body.todo.text).toBe(todos[0].text) //because we have two to-dos in our test data
             })
+            .end(done);
+
+    });
+
+    it('should not return todo doc by other user', (done)=> {
+        request(app)
+            .get(`/todos/${todos[1]._id.toHexString()}`)
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
+            .expect(404)
             .end(done);
 
     });
@@ -105,6 +118,7 @@ describe('GET one /todos:id', ()=> {
 
         request(app)
             .get(`/todos/${hexId}`)
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .expect(404)
             .end(done);
     });
@@ -112,6 +126,7 @@ describe('GET one /todos:id', ()=> {
     it('should return 404 non-object id', (done)=> {
         request(app)
             .get(`/todos/123`)
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .expect(404)
             .end(done);
     });
@@ -123,6 +138,7 @@ describe('DELETE /todos/:id', ()=> {
 
         request(app)
             .delete(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token) //set a header in super test
             .expect(200)
             .expect( (response) => {
                 expect(response.body.todo._id).toBe(hexId);
@@ -143,11 +159,35 @@ describe('DELETE /todos/:id', ()=> {
 
     });
 
+    it('should not remove a todo created by another user', (done) => {
+        var hexId = todos[0]._id.toHexString(); //try to delete the first ToDo not owned by the secomd user
+
+        request(app)
+            .delete(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token) //set a header in super test
+            .expect(404)
+            .end((err, response) => {
+                if ( err ) {
+                    return done(err);
+                }
+
+                //call find to see if the delete actually worked
+                //added find the specific text that we entered so the test should come back as 1
+                Todo.findById(hexId).then((todo) => {
+                    expect(todo).toExist(); //should exist because the user never created the ToDo
+                    done();
+                }).catch((e) => done(e)); // catch the error if failed saving to the database because the above
+                // calls only catches http errors in our test case
+            });
+
+    });
+
     it('should return 404 uf todo not found', (done) => {
         var hexId = new ObjectID().toHexString();
 
         request(app)
             .delete(`/todos/${hexId}`)
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .expect(404)
             .end(done);
     });
@@ -155,6 +195,7 @@ describe('DELETE /todos/:id', ()=> {
     it('should return 404 if object id is invalid', (done) => {
         request(app)
             .delete(`/todos/123`)
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .expect(404)
             .end(done);
     });
@@ -169,6 +210,7 @@ describe('Patch /todos:id', () => {
 
         request(app)
             .patch(`/todos/${hexId}`)
+            .set('x-auth', users[0].tokens[0].token) //set a header in super test
             .send({
                 completed: true,
                 text
@@ -183,13 +225,33 @@ describe('Patch /todos:id', () => {
 
     });
 
-    it('should clear completedAt when todo is not completed', (done)=> {
-        var hexId = todos[1]._id.toHexString();
+    it('should not update the todo for second user', (done)=> {
+        var hexId = todos[0]._id.toHexString();
+        var text = 'This should be the new text';
 
         request(app)
             .patch(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token) //set a header in super test
             .send({
-                completed: false})
+                completed: true,
+                text
+            })
+            .expect(404)
+            .end(done);
+
+    });
+
+    it('should clear completedAt when todo is not completed', (done)=> {
+        var hexId = todos[1]._id.toHexString();
+        var text = "This be the new text!!!";
+
+        request(app)
+            .patch(`/todos/${hexId}`)
+            .set('x-auth', users[1].tokens[0].token) //set a header in super test
+            .send({
+                completed: false,
+                text
+            })
             .expect(200)
             .expect( (response) => {
                 expect(response.body.todo.completed).toBe(false);
@@ -309,7 +371,7 @@ describe('POST /users/login', ()=> {
                 }
 
                 User.findById(users[1]._id).then((user)=>{
-                    expect(user.tokens[0]).toInclude({
+                    expect(user.tokens[1]).toInclude({
                        access: 'auth',
                        token: response.headers['x-auth']
                     });
@@ -336,7 +398,7 @@ describe('POST /users/login', ()=> {
                 }
 
                 User.findById(users[1]._id).then((user)=>{
-                    expect(user.tokens.length).toBe(0);
+                    expect(user.tokens.length).toBe(1);
                     done();
                 }).catch((e) => done(e) ); //create a custom catch call to know exactly where the error was caused
             });
