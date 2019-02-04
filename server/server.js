@@ -91,7 +91,7 @@ app.delete('/todos/:id', (request, response)=> {
         response.status(404).send();
     }
 
-    Todo.findByIdAndRemove(id).then( (todo) => {
+    Todo.findByIdAndDelete(id).then( (todo) => {
         if(!todo) {
             response.status(404).send("ID not found");
         }
@@ -133,7 +133,7 @@ app.patch('/todos/:id', (request, response) => {
 })
 
 //Adding new user by POST /users
-app.post('/user', (request, response) => {
+app.post('/users', (request, response) => {
     var body = _.pick(request.body, ['email', 'password', 'firstName', 'lastName']);  //this just takes the text and completed properties
 
     var user = new User( body );
@@ -154,8 +154,23 @@ app.post('/user', (request, response) => {
 });
 
 //Setting up private routes  -- to setup our middleware we just call the reusable function that we created
-app.get('/user/me', authenticate, (request, response) => {
+app.get('/users/me', authenticate, (request, response) => {
     response.send(request.user);
+});
+
+//app.post()
+//POST /users/login {email,password}
+app.post('/users/login', (request, response) => {
+    var body = _.pick(request.body, ['email', 'password']);  //this just takes the text and completed properties
+
+    //User.findByCredentials -- custom model method we are going to create
+    User.findByCredentials( body.email, body.password ).then((user) => {
+        return user.generateAuthToken().then((token)=>{
+            response.header('x-auth', token).send( user );
+        })
+    }).catch((e) => {
+        response.status(400).send();
+    });
 });
 
 app.listen( process.env.PORT, () => {

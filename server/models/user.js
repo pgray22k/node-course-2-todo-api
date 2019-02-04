@@ -96,6 +96,25 @@ UserSchema.statics.findByToken = function ( token ) {
     });
 };
 
+UserSchema.statics.findByCredentials = function( email, password ) {
+    var User = this;
+
+    return User.findOne({email}).then((user) => {
+        if ( !user) {
+            return Promise.reject('Login Incorrect');
+        }
+        return new Promise(( resolve, reject) => {
+            bcrypt.compare( password, user.password, (err, result) => {
+                if ( result ) {
+                    resolve( user )
+                } else {
+                    reject('Login Incorrect');
+                }
+            });
+        });
+    });
+};
+
 //crate an event before we save the document to the database
 //going to invoke the function keyword because we want the this binding
 //have to call the next argument and call because the middleware is never going to complete if we dont call it
