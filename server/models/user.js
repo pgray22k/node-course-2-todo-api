@@ -71,6 +71,21 @@ UserSchema.methods.generateAuthToken = function() {
   });
 };
 
+UserSchema.methods.removeToken = function( token ) {
+    var user = this; //instance method has lower case instead of upper case
+    //remove certain items from the array that matches certain criteria
+    //$pull
+
+    //chain request so return the value
+    return user.update({
+        $pull: {
+           tokens: { //pull from the tokens array if we found the token the entire object will be removed
+               token : token
+           }
+       }
+    });
+};
+
 //Access .statics - everything that is added on to a model method instead of an instance method
 UserSchema.statics.findByToken = function ( token ) {
     //when use a function method we gain access to this keyword
