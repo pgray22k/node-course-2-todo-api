@@ -1,6 +1,7 @@
 var {User} = require('./../models/user');
 
 //middleware function to make all of our routes private
+//based on the token we can return the appropriate user from the app call
 var authenticate = ( request, response, next) => {
     var token = request.header('x-auth'); //get the header and verify the token and get the user
 

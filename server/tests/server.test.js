@@ -342,3 +342,31 @@ describe('POST /users/login', ()=> {
             });
     });
 });
+
+
+describe('DELETE /users/me/token', () => {
+    it('should remove auth token on logout', (done) => {
+       //DELETE /users/me/token
+       //SET X-auth equal to token
+       //200
+       //find user, verify that tokens array has length of zero
+
+       request(app)
+           .delete('/users/me/token')
+           .set('x-auth', users[0].tokens[0].token) //set a header in super test
+           .expect(200)
+           .expect((response)=>{
+               expect(response.headers['x-auth']).toNotExist();
+           })
+           .end((err, response) => {
+               if ( err ) {
+                   return done(err);
+               }
+
+               User.findById(users[0]._id).then((user)=>{
+                   expect(user.tokens.length).toBe(0);
+                   done();
+               }).catch((e) => done(e) ); //create a custom catch call to know exactly where the error was caused
+           });
+    });
+})
